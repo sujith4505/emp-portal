@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Emp Portal — Employee Management</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="brand">Emp Portal</div>
+    <nav>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#employees">Employees</a>
+      <a href="#attendance">Attendance</a>
+      <a href="#leaves">Leaves</a>
+      <a href="#payroll">Payroll</a>
+      <a href="#admin">Admin</a>
+    </nav>
+    <div class="profile" id="authArea"></div>
+  </header>
+
+  <main class="main">
+    <section id="hero" class="hero white-blue">
+      <h1>Emp Portal</h1>
+      <p class="lead">Single page employee management — auth, roles, attendance, leaves, payroll & reports.</p>
+    </section>
+
+    <section id="dashboard" class="card section">
+      <h2>Dashboard</h2>
+      <div class="grid-3" id="kpis"></div>
+      <canvas id="attendanceChart" style="max-width:800px;margin-top:18px"></canvas>
+    </section>
+
+    <section id="employees" class="card section">
+      <h2>Employees</h2>
+      <div class="row controls">
+        <input id="empSearch" placeholder="Search name, email, department..." />
+        <button id="btnNew" class="btn primary">New Employee</button>
+      </div>
+      <div id="empList" class="grid"></div>
+    </section>
+
+    <section id="attendance" class="card section">
+      <h2>Attendance</h2>
+      <div class="row controls">
+        <select id="attendanceSelect"></select>
+        <button id="checkInBtn" class="btn">Check In</button>
+        <button id="checkOutBtn" class="btn">Check Out</button>
+      </div>
+      <div id="attendanceList"></div>
+    </section>
+
+    <section id="leaves" class="card section">
+  <h2>Leaves</h2>
+
+  <!-- Leave balances & apply form -->
+  <div id="leaveBalances" style="margin-bottom:12px"></div>
+
+  <!-- Apply leave form -->
+  <div class="card" style="margin-top:12px">
+    <h3>Apply for Leave</h3>
+    <div class="row">
+      <select id="applyEmployee" style="min-width:240px">
+        <option value="">Select Employee</option>
+      </select>
+      <input id="applyType" placeholder="Type (Sick/Casual)" />
+    </div>
+    <div class="row">
+      <input id="applyStart" type="date" />
+      <input id="applyEnd" type="date" />
+    </div>
+    <div class="row">
+      <input id="applyReason" placeholder="Reason" style="flex:1" />
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:8px">
+      <button id="doApply" class="btn primary">Apply</button>
+    </div>
+  </div>
+
+  <!-- Leave request list -->
+  <div id="leaveRequests" style="margin-top:12px"></div>
+</section>
+
+      <section id="admin" class="card section">
+  <h2>Admin</h2>
+
+  <!-- Top action row -->
+  <div class="row" style="margin-bottom:12px; gap:8px; flex-wrap:wrap;">
+    <button id="adminRefreshBtn" class="btn">Refresh</button>
+    <button id="adminCreateUserBtn" class="btn primary">Create User</button>
+    <button id="adminLoadPendingBtn" class="btn">Load Pending Leaves</button>
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 360px; gap:12px; align-items:start;">
+    <!-- LEFT: Pending leave requests -->
+    <div>
+      <h3 style="margin-top:0">Pending Leave Requests</h3>
+      <div id="pendingLeaves">
+        <!-- Filled dynamically: each item will include Approve / Reject buttons -->
+        <div class="card">No pending leave requests</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Users list + quick create form -->
+    <aside>
+      <h3 style="margin-top:0">Users</h3>
+      <div id="usersList" style="margin-bottom:8px">
+        <!-- Users will load here -->
+        <div class="card">Loading users...</div>
+      </div>
+
+      <!-- Quick create user form (hidden/shown via JS) -->
+      <div id="createUserForm" class="card" style="display:none;">
+        <h4>Create User</h4>
+        <div class="row" style="margin-bottom:8px;">
+          <input id="cu_name" placeholder="Full name" />
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <input id="cu_email" placeholder="Email" />
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <input id="cu_password" placeholder="Password" type="password" />
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <select id="cu_role">
+            <option value="employee">employee</option>
+            <option value="hr">hr</option>
+            <option value="manager">manager</option>
+            <option value="admin">admin</option>
+          </select>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;">
+          <button id="cu_create" class="btn primary">Create</button>
+          <button id="cu_cancel" class="btn">Cancel</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+
+
+  </main>
+
+  <footer class="footer">
+    <div>Contact: <a href="mailto:sundarsujith2005@gmail.com">sundarsujith2005@gmail.com</a> • <a href="https://linkedin.com/in/sujith-s-23a86034a" target="_blank">LinkedIn</a> • <a href="https://github.com/Sujithluffy" target="_blank">GitHub</a></div>
+    <div>© Emp Portal</div>
+  </footer>
+
+  <div id="modal" class="modal hidden"></div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="app.js"></script>
+<script>
+(function(){
+  const nav = document.querySelector('.nav');
+  if(!nav) return;
+  let lastY = window.scrollY || 0;
+  let ticking = false;
+  let hidden = false;
+
+  function onFrame() {
+    const y = window.scrollY || 0;
+    const dy = y - lastY;
+
+    // If scrolling down fast -> hide/upward transform (add scrolled)
+    if (dy > 6 && y > 40) {
+      if (!hidden) {
+        nav.classList.add('scrolled');
+        hidden = true;
+      }
+    }
+    // If scrolling up -> show (remove scrolled)
+    else if (dy < -6 || y <= 40) {
+      if (hidden) {
+        nav.classList.remove('scrolled');
+        hidden = false;
+      }
+    }
+
+    lastY = y;
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(onFrame);
+  }, { passive: true });
+
+  // ensure correct initial state after load
+  setTimeout(() => {
+    lastY = window.scrollY || 0;
+    if (lastY > 40) {
+      nav.classList.add('scrolled');
+      hidden = true;
+    } else {
+      nav.classList.remove('scrolled');
+      hidden = false;
+    }
+  }, 60);
+})();
+</script>
+
+</body>
+</html>
